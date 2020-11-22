@@ -128,8 +128,13 @@ int main(int argc, char** argv) {
     triangle_countv1(g, nv, true, &duration);
     triangle_countv2(g, nv, true, &duration);
 
-    testv1(200, "timesv1.txt", 0);
-    testv2(200, "timesv2.txt", 0);
+    //testv1(200, "timesv1.txt", 0);
+    //testv2(200, "timesv2.txt", 0);
+
+    if (argc > 1) {
+        CSCGraph g = utils::parseMMGraph(argv[1]);
+        g.print();
+    }
 
     utils::free_graph(g, nv);
     return 0;

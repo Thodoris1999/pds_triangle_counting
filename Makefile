@@ -4,7 +4,9 @@ CFLAGS=`pkg-config libcgraph --cflags` -Wall -O3 -DGRAPHVIZ -DWITH_CGRAPH
 LDFLAGS=`pkg-config libcgraph --libs`
 
 BINS_DIR=bin
-SRC_DIR=src
+C_SOURCES = src/mmio.c
+CPP_SOURCES = src/sparse_graph.cpp
+SOURCES = $(C_SOURCES) $(CPP_SOURCES)
 
 default: all
 
@@ -14,9 +16,12 @@ bin:
 	mkdir -p $@
 
 main: | bin
-	$(CC) $(CFLAGS) -o $(BINS_DIR)/$@ $(SRC_DIR)/main.cpp $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $(BINS_DIR)/$@ $(SOURCES) src/main.cpp $(LDFLAGS)
 
-all: main
+v3: | bin
+	$(CC) $(CFLAGS) -o $(BINS_DIR)/$@ $(SOURCES) src/v3.cpp $(LDFLAGS)
+
+all: main v3
 
 clean:
 	rm -rf $(BINS_DIR)
