@@ -4,6 +4,10 @@
 class CSCGraph {
     private:
     int n;
+    int* c3;
+
+    void triangleCountV3Serial();
+    void triangleCountV3Cilk();
 
     public:
     int* row_index;
@@ -12,7 +16,7 @@ class CSCGraph {
     CSCGraph(int n, int nnz);
     ~CSCGraph();
     int at(int i, int j);
-    void triangleCountV3(bool verbose, struct timespec* duration);
+    void triangleCountV3(bool verbose, struct timespec* duration, const char* method);
     void print();
     inline int cols() const { return n; }
 };

@@ -7,7 +7,7 @@ int main(int argc, char** argv) {
         g.print();
 
         struct timespec duration;
-        g.triangleCountV3(1, &duration, "serial");
+        g.triangleCountV3(1, &duration, "cilk");
     }   
     return 0;
 }

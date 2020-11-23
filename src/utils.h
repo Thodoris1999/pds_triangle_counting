@@ -8,7 +8,9 @@
 #include <cstdio>
 
 #include "sparse_graph.h"
+extern "C" {
 #include "mmio.h"
+}
 
 #ifdef GRAPHVIZ
 #include <gvc.h>

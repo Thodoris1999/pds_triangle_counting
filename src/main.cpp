@@ -123,7 +123,9 @@ int main(int argc, char** argv) {
     int** g = utils::create_rand_graph(nv, ne);
 
     utils::print_mat(g, nv, nv);
+#ifdef GRAPHVIZ
     utils::viz_mat(g, nv);
+#endif
     struct timespec duration;
     triangle_countv1(g, nv, true, &duration);
     triangle_countv2(g, nv, true, &duration);
