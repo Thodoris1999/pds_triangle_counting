@@ -135,6 +135,7 @@ inline CSCGraph parseMMGraph(char* filename) {
     free(col_index);
 
     fclose(fp);
+    printf("Matrix market file %s parsed successfully\n", filename);
     return g;
 }
 
