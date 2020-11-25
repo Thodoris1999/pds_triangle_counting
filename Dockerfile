@@ -61,8 +61,10 @@ WORKDIR $HOME/$DIR
 
 # Generate welcome message printed at login
 COPY Welcome $HOME/.welcome
-COPY src $HOME/$DIR
+COPY src $HOME/$DIR/src
 COPY Makefile $HOME/$DIR
+COPY dataset.txt $HOME/$DIR
+COPY get_data.bash $HOME/$DIR
 RUN echo "cat $HOME/.welcome" >> $HOME/.bashrc
 
 # Start bash login shell

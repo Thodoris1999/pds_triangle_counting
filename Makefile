@@ -20,16 +20,19 @@ default: all
 bin:
 	mkdir -p $@
 
+data:
+	./get_data.bash
+
 mmio: | bin 
 	$(CC) -c $(CFLAGS) -o $(MMIO_LIB) $(C_SOURCES)
 
 main: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/main.cpp $(LDFLAGS)
 
-v3: | bin mmio
+v3: | bin mmio data
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3.cpp $(LDFLAGS)
 
-v3_cilk: | bin mmio
+v3_cilk: | bin mmio data
 	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_cilk.cpp $(LDFLAGS) -lstdc++
 
 all: main v3 v3_cilk
