@@ -10,14 +10,22 @@
 #include <cilk/cilk.h>
 #endif
 
+#ifdef OMP
+#include <omp.h>
+#endif
+
 CSCGraph::CSCGraph(int n, int nnz) : n(n) {
     row_index = (int*) malloc(nnz * sizeof(int));
     col_ptr = (int*) malloc((n+1) * sizeof(int));
+
+    c3 = (int*) malloc(this->n*sizeof(int));
+    for (int i = 0; i < this->n; i++) c3[i]=0;
 }
 
 CSCGraph::~CSCGraph() {
     free(col_ptr);
     free(row_index);
+    free(c3);
 }
 
 // random access Θ(nnz/n)
@@ -30,9 +38,6 @@ int CSCGraph::at(int i, int j) {
 }
 
 void CSCGraph::triangleCountV3Serial() {
-    c3 = (int*) malloc(this->n*sizeof(int));
-    for (int i = 0; i < this->n; i++) c3[i]=0;
-
     int nnz = col_ptr[n];
     for (int i = 0; i < n; i++) {
         for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
@@ -50,12 +55,9 @@ void CSCGraph::triangleCountV3Serial() {
 
 void CSCGraph::triangleCountV3Cilk() {
 #ifdef CILK
-    c3 = (int*) malloc(this->n*sizeof(int));
-    cilk_for (int i = 0; i < this->n; i++) c3[i]=0;
-
     int nnz = col_ptr[n];
     cilk_for (int i = 0; i < n; i++) {
-        for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
+        cilk_for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
             if (row_index[j] <= i) continue; // only evaluate i < j < k
             for (int k = j+1; k < col_ptr[i+1]; k++) {
                 if (at(row_index[k], row_index[j]) == 1) {
@@ -69,6 +71,34 @@ void CSCGraph::triangleCountV3Cilk() {
 #endif
 }
 
+void CSCGraph::triangleCountV3Omp() {
+#ifdef OMP
+#define NUM_THREADS 4
+    int nnz = col_ptr[n];
+    omp_set_num_threads(NUM_THREADS);
+    #pragma omp parallel 
+    {
+    int id = omp_get_thread_num();
+    int nthreads = omp_get_num_threads();
+    for (int i = id; i < n; i+=nthreads) {
+        for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
+            if (row_index[j] <= i) continue; // only evaluate i < j < k
+            for (int k = j+1; k < col_ptr[i+1]; k++) {
+                if (at(row_index[k], row_index[j]) == 1) {
+                    #pragma omp critical
+                    {
+                    c3[i]++;
+                    c3[row_index[j]]++;
+                    c3[row_index[k]]++;
+                    }
+                }
+            }
+	}
+    }
+    }
+#endif
+}
+
 void CSCGraph::triangleCountV3(bool verbose, struct timespec* duration, const char* method) {
     struct timespec ts_start;
     clock_gettime(CLOCK_MONOTONIC, &ts_start);
@@ -76,6 +106,8 @@ void CSCGraph::triangleCountV3(bool verbose, struct timespec* duration, const ch
 
     if (strcmp(method, "cilk") == 0) {
         triangleCountV3Cilk();
+    } else if (strcmp(method, "omp") == 0) {
+        triangleCountV3Omp();
     } else {
         triangleCountV3Serial();
     }
@@ -107,7 +139,6 @@ void CSCGraph::triangleCountV3(bool verbose, struct timespec* duration, const ch
         double dur_d = duration->tv_sec + duration->tv_nsec/1000000000.0;
         printf("V3 duration: %lf seconds\n", dur_d);
     }
-    free(c3);
 }
 
 void CSCGraph::print() {

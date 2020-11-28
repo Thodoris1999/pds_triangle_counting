@@ -7,6 +7,7 @@ class CSCGraph {
 
     void triangleCountV3Serial();
     void triangleCountV3Cilk();
+    void triangleCountV3Omp();
 
     public:
     int* row_index;

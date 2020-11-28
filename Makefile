@@ -11,6 +11,7 @@ GRAPHVIZ_DEFS=-DGRAPHVIZ -DWITH_CGRAPH
 
 CFLAGS=`pkg-config libcgraph --cflags` -Wall -O3 $(GRAPHVIZ_DEFS)
 CILKFLAGS=-Wall -O3 -fcilkplus -DCILK
+OMPFLAGS=-Wall -O3 -fopenmp -DOMP
 LDFLAGS=`pkg-config libcgraph --libs` $(MMIO_LIB)
 
 default: all
@@ -29,13 +30,16 @@ mmio: | bin
 main: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/main.cpp $(LDFLAGS)
 
-v3: | bin mmio data
+v3: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3.cpp $(LDFLAGS)
 
-v3_cilk: | bin mmio data
+v3_cilk: | bin mmio
 	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_cilk.cpp $(LDFLAGS) -lstdc++
 
-all: main v3 v3_cilk
+v3_omp: | bin mmio
+	$(CPPC) $(OMPFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_omp.cpp $(LDFLAGS) -lstdc++
+
+all: main v3 v3_cilk v3_omp
 
 clean:
 	rm -rf $(BINS_DIR)

@@ -18,7 +18,16 @@ int main(int argc, char** argv) {
     if (d) {
         FILE *fp = fopen("v3_serial_times.txt", "w+");
         while ((dir = readdir(d)) != nullptr) {
-            CSCGraph g = utils::parseMMGraph(dir->d_name);
+            char* rchr = strrchr(dir->d_name, '.');
+            if (rchr == nullptr || strcmp(rchr, ".mtx") != 0) {
+                printf("skipping %s\n", dir->d_name);
+                continue; // not matrix market file
+            }
+            char* path = (char*) malloc((strlen(dir->d_name)+strlen("data/")+2) * sizeof(char));
+            strcpy(path, "data/");
+            strcat(path, dir->d_name);
+            CSCGraph g = utils::parseMMGraph(path);
+            free(path);
             g.print();
 
             struct timespec duration;

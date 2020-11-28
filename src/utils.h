@@ -60,6 +60,7 @@ inline void viz_mat(int** A, int nv) {
 #endif
 
 inline CSCGraph parseMMGraph(char* filename) {
+    printf("Parsing %s\n", filename);
     FILE* fp = fopen(filename, "r");
     if (!fp) {
         printf("Error opening file %s\n", filename);
@@ -97,13 +98,16 @@ inline CSCGraph parseMMGraph(char* filename) {
     }
 
     CSCGraph g(N, nz);
-    int* col_index = (int*) malloc(nz * sizeof(int)); // col indices in COO format
+    int col_idx;
     bool wrn_nzoo = true;
+    g.col_ptr[0] = 0;
+    int cur_col = 0;
+    printf("Matrix market file %s valid, parsing...\n", filename);
     for (int i=0; i<nz; i++)
     {
         if (!pattern) {
             double val;
-            fscanf(fp, "%d %d %lf\n", &g.row_index[i], &col_index[i], &val);
+            fscanf(fp, "%d %d %lf\n", &g.row_index[i], &col_idx, &val);
             if (val != 0 && val != 1) {
                 if (wrn_nzoo) {
                     printf("Warning: non-zero-or-one element %lf, will be interpreted as 1, ", val);
@@ -112,30 +116,23 @@ inline CSCGraph parseMMGraph(char* filename) {
                 }
             }
         } else {
-            fscanf(fp, "%d %d\n", &g.row_index[i], &col_index[i]);
+            fscanf(fp, "%d %d\n", &g.row_index[i], &col_idx);
         }
         g.row_index[i]--;  /* adjust from 1-based to 0-based */
-        col_index[i]--;
-    }
-    int total_nz = 0;
-    for (int i = 0; i < N; i++) {
-        g.col_ptr[i] = total_nz;
-        int col_nz = 0;
-        for (int j = 0; j < nz; j++) {
-            if (col_index[j] == i)
-                col_nz++;
+        //col_index[i]--;
+        if (col_idx != cur_col) {
+            for (int j = cur_col+1; j <= col_idx; j++) {
+                g.col_ptr[j] = g.col_ptr[cur_col];
+            }
+            cur_col = col_idx;
         }
-        total_nz += col_nz;
+        g.col_ptr[cur_col]++;
     }
-    if (total_nz != nz) {
-        printf("Error: nz=%d did not count up to total_nz=%d", nz, total_nz);
-        exit(6);
-    }
-    g.col_ptr[N] = total_nz;
-    free(col_index);
+    g.col_ptr[N] = nz;
+    printf("Matrix market file %s parsed successfully\n", filename);
 
     fclose(fp);
-    printf("Matrix market file %s parsed successfully\n", filename);
+    printf("Sparse matrix from file %s created successfully\n", filename);
     return g;
 }
 
