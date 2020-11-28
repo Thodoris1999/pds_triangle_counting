@@ -98,10 +98,9 @@ inline CSCGraph parseMMGraph(char* filename) {
     }
 
     CSCGraph g(N, nz);
-    int col_idx;
     bool wrn_nzoo = true;
     g.col_ptr[0] = 0;
-    int cur_col = 0;
+    int col_idx;
     printf("Matrix market file %s valid, parsing...\n", filename);
     for (int i=0; i<nz; i++)
     {
@@ -119,16 +118,15 @@ inline CSCGraph parseMMGraph(char* filename) {
             fscanf(fp, "%d %d\n", &g.row_index[i], &col_idx);
         }
         g.row_index[i]--;  /* adjust from 1-based to 0-based */
-        //col_index[i]--;
-        if (col_idx != cur_col) {
-            for (int j = cur_col+1; j <= col_idx; j++) {
-                g.col_ptr[j] = g.col_ptr[cur_col];
-            }
-            cur_col = col_idx;
-        }
-        g.col_ptr[cur_col]++;
+        g.col_ptr[col_idx]++; // col_ptr temporarily holds the number of nz in the previous column
     }
-    g.col_ptr[N] = nz;
+
+    // cumsum
+    for (int i = 0; i < N; i++) {
+        g.col_ptr[i+1] += g.col_ptr[i];
+    }
+    
+    assert(g.col_ptr[N] == nz);
     printf("Matrix market file %s parsed successfully\n", filename);
 
     fclose(fp);
