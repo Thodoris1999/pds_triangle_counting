@@ -12,6 +12,7 @@ GRAPHVIZ_DEFS=-DGRAPHVIZ -DWITH_CGRAPH
 CFLAGS=`pkg-config libcgraph --cflags` -Wall -O3 $(GRAPHVIZ_DEFS)
 CILKFLAGS=-Wall -O3 -fcilkplus -DCILK
 OMPFLAGS=-Wall -O3 -fopenmp -DOMP
+PTHREADSFLAGS=-Wall -O3 -pthread -DPTHREADS
 LDFLAGS=`pkg-config libcgraph --libs` $(MMIO_LIB)
 
 default: all
@@ -42,7 +43,16 @@ v3_omp: | bin mmio
 v4: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4.cpp $(LDFLAGS)
 
-all: main v3 v3_cilk v3_omp v4
+v4_cilk: | bin mmio
+	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4_cilk.cpp $(LDFLAGS) -lstdc++
+
+v4_omp: | bin mmio
+	$(CPPC) $(OMPFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4_omp.cpp $(LDFLAGS) -lstdc++
+
+v4_pthreads: | bin mmio
+	$(CPPC) $(PTHREADSFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4_pthreads.cpp $(LDFLAGS)
+
+all: main v3 v3_cilk v3_omp v4 v4_cilk v4_omp v4_pthreads
 
 clean:
 	rm -rf $(BINS_DIR)

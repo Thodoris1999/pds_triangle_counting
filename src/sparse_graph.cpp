@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
+#include <sstream>
 
 #include "sparse_graph.h"
 
@@ -12,6 +13,10 @@
 
 #ifdef OMP
 #include <omp.h>
+#endif
+
+#ifdef PTHREADS
+#include <pthread.h>
 #endif
 
 CSCGraph::CSCGraph(int n, int nnz) : n(n) {
@@ -73,8 +78,11 @@ void CSCGraph::triangleCountV4Serial() {
 
 void CSCGraph::triangleCountV4Cilk(int nthreads) {
 #ifdef CILK
+    std::sstream;
+    ss << "CILK_NWORKERS=" << nthreads;
+    putenv(ss.str().c_str());
     int nnz = col_ptr[n];
-    for (int i = 0; i < n; i++) {
+    cilk_for (int i = 0; i < n; i++) {
         for (int j = col_ptr[i]; j < col_ptr[i+1]; j++) {
             int coli_ptr = col_ptr[i];
             int colj_ptr = col_ptr[row_index[j]];
@@ -91,13 +99,19 @@ void CSCGraph::triangleCountV4Cilk(int nthreads) {
                 }
             }
         }
+        c3[i] /= 2;
     }
 #endif
 }
 void CSCGraph::triangleCountV4Omp(int nthreads) {
 #ifdef OMP
     int nnz = col_ptr[n];
-    for (int i = 0; i < n; i++) {
+    omp_set_num_threads(nthreads);
+    #pragma omp parallel
+    {
+    int id = omp_get_thread_num();
+    int nthrds = omp_get_num_threads();
+    for (int i = id; i < n; i+=nthrds) {
         for (int j = col_ptr[i]; j < col_ptr[i+1]; j++) {
             int coli_ptr = col_ptr[i];
             int colj_ptr = col_ptr[row_index[j]];
@@ -110,22 +124,37 @@ void CSCGraph::triangleCountV4Omp(int nthreads) {
                 } else {
                     coli_ptr++;
                     colj_ptr++;
+                    #pragma omp atomic
                     c3[i]++;
                 }
             }
         }
+        #pragma omp atomic
+        c3[i] /= 2;
+    }
     }
 #endif
 }
-void CSCGraph::triangleCountV4Pthreads(int nthreads) {
+
 #ifdef PTHREADS
-    int nnz = col_ptr[n];
-    for (int i = 0; i < n; i++) {
-        for (int j = col_ptr[i]; j < col_ptr[i+1]; j++) {
-            int coli_ptr = col_ptr[i];
-            int colj_ptr = col_ptr[row_index[j]];
-            while (coli_ptr < col_ptr[i+1] && colj_ptr < col_ptr[row_index[j]+1]) {
-                int diff = row_index[colj_ptr] - row_index[coli_ptr];
+struct ThreadParams {
+    int* col_ptr;
+    int* row_index;
+    int* c3;
+    int n;
+    int thrd_id;
+    int n_thrds;
+    pthread_mutex_t* c3_mutex;
+};
+
+void* pthread_callback(void* params) {
+    struct ThreadParams* prms = (struct ThreadParams*) params;
+    for (int i = prms->thrd_id; i < prms->n; i+=prms->n_thrds) {
+        for (int j = prms->col_ptr[i]; j < prms->col_ptr[i+1]; j++) {
+            int coli_ptr = prms->col_ptr[i];
+            int colj_ptr = prms->col_ptr[prms->row_index[j]];
+            while (coli_ptr < prms->col_ptr[i+1] && colj_ptr < prms->col_ptr[prms->row_index[j]+1]) {
+                int diff = prms->row_index[colj_ptr] - prms->row_index[coli_ptr];
                 if (diff > 0) {
                     coli_ptr++;
                 } else if (diff < 0) {
@@ -133,11 +162,52 @@ void CSCGraph::triangleCountV4Pthreads(int nthreads) {
                 } else {
                     coli_ptr++;
                     colj_ptr++;
-                    c3[i]++;
+                    pthread_mutex_lock(prms->c3_mutex);
+                    prms->c3[i]++;
+                    pthread_mutex_unlock(prms->c3_mutex);
                 }
             }
         }
+        pthread_mutex_lock(prms->c3_mutex);
+        prms->c3[i] /= 2;
+        pthread_mutex_unlock(prms->c3_mutex);
     }
+    pthread_exit(0);
+}
+#endif
+
+void CSCGraph::triangleCountV4Pthreads(int nthreads) {
+#ifdef PTHREADS
+    int nnz = col_ptr[n];
+
+    pthread_t* threads = (pthread_t*) malloc(nthreads*sizeof(pthread_t));
+    struct ThreadParams* thread_params = (ThreadParams*) malloc(nthreads*sizeof(ThreadParams));
+    pthread_mutex_t* c3_mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(c3_mutex, nullptr);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+
+    for (int i = 0; i < nthreads; i++) {
+        thread_params[i].col_ptr = col_ptr;
+        thread_params[i].row_index = row_index;
+        thread_params[i].c3 = c3;
+        thread_params[i].n = n;
+        thread_params[i].thrd_id = i;
+        thread_params[i].n_thrds = nthreads;
+        thread_params[i].c3_mutex = c3_mutex;
+
+        pthread_create(&threads[i], &attr, pthread_callback, &thread_params[i]);
+    }
+
+    for (int i = 0; i < nthreads; i++) {
+        pthread_join(threads[i], nullptr);
+    }
+
+    pthread_attr_destroy(&attr);
+    pthread_mutex_destroy(c3_mutex);
+    free(c3_mutex);
+    free(thread_params);
+    free(threads);
 #endif
 }
 
