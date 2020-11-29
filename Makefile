@@ -39,7 +39,10 @@ v3_cilk: | bin mmio
 v3_omp: | bin mmio
 	$(CPPC) $(OMPFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_omp.cpp $(LDFLAGS) -lstdc++
 
-all: main v3 v3_cilk v3_omp
+v4: | bin mmio
+	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4.cpp $(LDFLAGS)
+
+all: main v3 v3_cilk v3_omp v4
 
 clean:
 	rm -rf $(BINS_DIR)

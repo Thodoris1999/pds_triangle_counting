@@ -22,6 +22,15 @@ int main(int argc, char** argv) {
                     c3_wrong_count++;
             }
             printf("Serial and parallel c3 differed in %d elements\n", c3_wrong_count);
+        } else if (argc > 2 && strcmp(argv[2], "--test") == 0) {
+            FILE *fp = fopen("v3_cilk_bmark.txt", "w+");
+            for (int i = 1; i <= 16; i++) {
+                g.triangleCountV3(1, &duration, "cilk", i); 
+                double dur_d = duration.tv_sec + duration.tv_nsec/1000000000.0;
+                fprintf(fp, "%lf\n", dur_d);
+            }
+
+            fclose(fp);
         }
     }   
 

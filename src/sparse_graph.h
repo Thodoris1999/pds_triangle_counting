@@ -6,8 +6,13 @@ class CSCGraph {
     int n;
 
     void triangleCountV3Serial();
-    void triangleCountV3Cilk();
-    void triangleCountV3Omp();
+    void triangleCountV3Cilk(int nthreads);
+    void triangleCountV3Omp(int nthreads);
+
+    void triangleCountV4Serial();
+    void triangleCountV4Cilk(int nthreads);
+    void triangleCountV4Omp(int nthreads);
+    void triangleCountV4Pthreads(int nthreads);
 
     public:
     int* row_index;
@@ -17,7 +22,9 @@ class CSCGraph {
     CSCGraph(int n, int nnz);
     ~CSCGraph();
     int at(int i, int j);
-    void triangleCountV3(bool verbose, struct timespec* duration, const char* method);
+    int* mul(int* v);
+    void triangleCountV3(bool verbose, struct timespec* duration, const char* method, int nthreads=0);
+    void triangleCountV4(bool verbose, struct timespec* duration, const char* method, int nthreads=0);
     void print();
     inline int cols() const { return n; }
     inline int nnz() const { return col_ptr[n]; }
