@@ -22,6 +22,13 @@ CSCGraph::CSCGraph(int n, int nnz) : n(n) {
     for (int i = 0; i < this->n; i++) c3[i]=0;
 }
 
+CSCGraph::CSCGraph(int n) : n(n) {
+    col_ptr = (int*) malloc((n+1) * sizeof(int));
+
+    c3 = (int*) malloc(this->n*sizeof(int));
+    for (int i = 0; i < this->n; i++) c3[i]=0;
+}
+
 CSCGraph::~CSCGraph() {
     free(col_ptr);
     free(row_index);

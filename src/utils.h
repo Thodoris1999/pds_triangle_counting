@@ -135,59 +135,6 @@ inline CSCGraph parseMMGraph(char* filename) {
     return g;
 }
 
-/**
- *  \brief COO to CSC conversion
- *
- *  Converts a square matrix from COO to CSC format.
- *
- *  Note: The routine assumes the input COO and the output CSC matrix
- *  to be square.
- *
- */
-inline void coo2csc(
-  uint32_t       * const row,       /*!< CSC row start indices */
-  uint32_t       * const col,       /*!< CSC column indices */
-  uint32_t const * const row_coo,   /*!< COO row indices */
-  uint32_t const * const col_coo,   /*!< COO column indices */
-  uint32_t const         nnz,       /*!< Number of nonzero elements */
-  uint32_t const         n,         /*!< Number of rows/columns */
-  uint32_t const         isOneBased /*!< Whether COO is 0- or 1-based */
-) {
-
-  // ----- cannot assume that input is already 0!
-  for (uint32_t l = 0; l < n+1; l++) col[l] = 0;
-
-
-  // ----- find the correct column sizes
-  for (uint32_t l = 0; l < nnz; l++)
-    col[col_coo[l] - isOneBased]++;
-
-  // ----- cumulative sum
-  for (uint32_t i = 0, cumsum = 0; i < n; i++) {
-    uint32_t temp = col[i];
-    col[i] = cumsum;
-    cumsum += temp;
-  }
-  col[n] = nnz;
-  // ----- copy the row indices to the correct place
-  for (uint32_t l = 0; l < nnz; l++) {
-    uint32_t col_l;
-    col_l = col_coo[l] - isOneBased;
-
-    uint32_t dst = col[col_l];
-    row[dst] = row_coo[l] - isOneBased;
-
-    col[col_l]++;
-  }
-  // ----- revert the column pointers
-  for (uint32_t i = 0, last = 0; i < n; i++) {
-    uint32_t temp = col[i];
-    col[i] = last;
-    last = temp;
-  }
-
-}
-
 // returns both the lower and upper triangular part
 inline CSCGraph parseMMGraphFull(char* filename) {
     printf("Parsing %s\n", filename);
@@ -227,7 +174,7 @@ inline CSCGraph parseMMGraphFull(char* filename) {
         exit(5);
     }
 
-    CSCGraph g(N, nz);
+    CSCGraph g(N);
     bool wrn_nzoo = true;
     g.col_ptr[0] = 0;
     int* col_index = (int*) malloc(nz*sizeof(int));
@@ -238,7 +185,7 @@ inline CSCGraph parseMMGraphFull(char* filename) {
     {
         if (!pattern) {
             double val;
-            fscanf(fp, "%d %d %lf\n", &g.row_index[i+n_extra], &col_index[i+n_extra], &val);
+            fscanf(fp, "%d %d %lf\n", &row_index[i+n_extra], &col_index[i+n_extra], &val);
             if (val != 0 && val != 1) {
                 if (wrn_nzoo) {
                     printf("Warning: non-zero-or-one element %lf, will be interpreted as 1, ", val);
@@ -247,28 +194,27 @@ inline CSCGraph parseMMGraphFull(char* filename) {
                 }
             }
         } else {
-            fscanf(fp, "%d %d\n", &g.row_index[i+n_extra], &col_index[i+n_extra]);
+            fscanf(fp, "%d %d\n", &row_index[i+n_extra], &col_index[i+n_extra]);
         }
-        // Note: row_index is zero-based and col_index zero-based because it was nicer for the creation
-        // of col_ptr later
-        g.row_index[i+n_extra]--;  /* adjust from 1-based to 0-based */
-        g.col_ptr[col_index[i+n_extra]]++; // col_ptr temporarily holds the number of nz in the previous column
-        printf("read %d %d\n", g.row_index[i+n_extra]+1, col_index[i+n_extra]);
 
-        if (g.row_index[i+n_extra]+1 != col_index[i+n_extra]) { // non-diagonal entry
+        row_index[i+n_extra]--;  /* adjust from 1-based to 0-based */
+        col_index[i+n_extra]--;
+        g.col_ptr[col_index[i+n_extra]+1]++; // col_ptr temporarily holds the number of nz in the previous column
+
+        if (row_index[i+n_extra] == col_index[i+n_extra]) { // ignore diagonal elements
+            g.col_ptr[col_index[i+n_extra]+1]--;
+            n_extra--;
+        } else if (row_index[i+n_extra] != col_index[i+n_extra]) { // non-diagonal entry
             n_extra++;
-            g.row_index = (int*) realloc(g.row_index, (nz+n_extra)*sizeof(int));
+            row_index = (int*) realloc(row_index, (nz+n_extra)*sizeof(int));
             col_index = (int*) realloc(col_index, (nz+n_extra)*sizeof(int));
 
-            g.row_index[i+n_extra] = col_index[i+n_extra-1];
-            col_index[i+n_extra] = g.row_index[i+n_extra-1]+1;
-            printf("added %d %d\n", g.row_index[i+n_extra], col_index[i+n_extra]);
+            row_index[i+n_extra] = col_index[i+n_extra-1];
+            col_index[i+n_extra] = row_index[i+n_extra-1];
             
-            g.col_ptr[col_index[i+n_extra]]++;
+            g.col_ptr[col_index[i+n_extra]+1]++;
         }
     }
-    free(col_index);
-    free(row_index);
     printf("Matrix market file %s parsed successfully\n", filename);
     printf("N: %d, lower triangular NZ: %d, total nz: %d\n", N, nz, nz+n_extra);
 
@@ -277,13 +223,27 @@ inline CSCGraph parseMMGraphFull(char* filename) {
         g.col_ptr[i+1] += g.col_ptr[i];
     }
 
-    // move row indices to column-major order
+    // move row indices so row_index are in column major order
+    // g.col_index holds the position in g.row_index that the next row_index of the i-th column should be placed in
+    g.row_index = (int*) malloc((nz+n_extra)*sizeof(int));
     for (int i = 0; i < nz+n_extra; i++) {
-         
+         int dst = g.col_ptr[col_index[i]];
+         g.row_index[dst] = row_index[i];
+         g.col_ptr[col_index[i]]++;
+    }
+
+    // undo changes in col_index
+    int prev = 0;
+    for (int i = 0; i < N; i++) {
+        int tmp = g.col_ptr[i];
+        g.col_ptr[i] = prev;
+        prev = tmp;
     }
 
     assert(g.col_ptr[N] == nz+n_extra);
 
+    free(col_index);
+    free(row_index);
     fclose(fp);
     printf("Sparse matrix from file %s created successfully\n", filename);
     return g;

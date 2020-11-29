@@ -19,6 +19,8 @@ class CSCGraph {
     int* col_ptr;
     int* c3;
 
+    // only allocates col_ptr and c3
+    CSCGraph(int n);
     CSCGraph(int n, int nnz);
     ~CSCGraph();
     int at(int i, int j);
