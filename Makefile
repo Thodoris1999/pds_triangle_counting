@@ -1,6 +1,6 @@
 CC=gcc
 CPPC=g++
-CILKCC=/usr/local/OpenCilk-9.0.1-Linux/bin/clang
+CILKCC=clang
 
 BINS_DIR=bin
 MMIO_LIB=$(BINS_DIR)/mmio.o
@@ -9,10 +9,10 @@ CPP_SOURCES = src/sparse_graph.cpp
 SOURCES = $(C_SOURCES) $(CPP_SOURCES)
 GRAPHVIZ_DEFS=-DGRAPHVIZ -DWITH_CGRAPH
 
-CFLAGS=`pkg-config libcgraph --cflags` -Wall -O3 $(GRAPHVIZ_DEFS)
-CILKFLAGS=-Wall -O3 -fcilkplus -DCILK
-OMPFLAGS=-Wall -O3 -fopenmp -DOMP
-PTHREADSFLAGS=-Wall -O3 -pthread -DPTHREADS
+CFLAGS=`pkg-config libcgraph --cflags` -std=c++0x -Wall -O3 #$(GRAPHVIZ_DEFS)
+CILKFLAGS=-std=c++0x -Wall -O3 -fcilkplus -DCILK
+OMPFLAGS=-std=c++0x -Wall -O3 -fopenmp -DOMP
+PTHREADSFLAGS=-std=c++0x -Wall -O3 -pthread -DPTHREADS
 LDFLAGS=`pkg-config libcgraph --libs` $(MMIO_LIB)
 
 default: all
