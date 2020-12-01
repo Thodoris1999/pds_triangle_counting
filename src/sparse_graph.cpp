@@ -8,6 +8,7 @@
 #include "sparse_graph.h"
 
 #ifdef CILK
+#include <cilk/cilk_api.h>
 #include <cilk/cilk.h>
 #endif
 
@@ -78,9 +79,9 @@ void CSCGraph::triangleCountV4Serial() {
 
 void CSCGraph::triangleCountV4Cilk(int nthreads) {
 #ifdef CILK
-    std::sstream;
-    ss << "CILK_NWORKERS=" << nthreads;
-    putenv(ss.str().c_str());
+    std::stringstream ss;
+    ss << "export CILK_NWORKERS=" << nthreads;
+    std::system(ss.str().c_str());
     int nnz = col_ptr[n];
     cilk_for (int i = 0; i < n; i++) {
         for (int j = col_ptr[i]; j < col_ptr[i+1]; j++) {
@@ -238,7 +239,9 @@ void CSCGraph::triangleCountV3Serial() {
 
 void CSCGraph::triangleCountV3Cilk(int nthreads) {
 #ifdef CILK
-    __cilkrts_set_param("nworkers", itoa(nthreads))
+    std::stringstream ss;
+    ss << "CILK_NWORKERS=" << nthreads;
+    __cilkrts_set_param("nworkers", ss.str().c_str())
     int nnz = col_ptr[n];
     cilk_for (int i = 0; i < n; i++) {
         cilk_for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
