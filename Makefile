@@ -10,7 +10,7 @@ SOURCES = $(C_SOURCES) $(CPP_SOURCES)
 GRAPHVIZ_DEFS=-DGRAPHVIZ -DWITH_CGRAPH
 
 CFLAGS=`pkg-config libcgraph --cflags` -std=c++0x -Wall -O3 #$(GRAPHVIZ_DEFS)
-CILKFLAGS=-std=c++0x -Wall -O3 -fcilkplus -DCILK
+CILKFLAGS=-Wall -O3 -fcilkplus -DCILK
 OMPFLAGS=-std=c++0x -Wall -O3 -fopenmp -DOMP
 PTHREADSFLAGS=-std=c++0x -Wall -O3 -pthread -DPTHREADS
 LDFLAGS=`pkg-config libcgraph --libs` $(MMIO_LIB)
@@ -34,8 +34,8 @@ main: | bin mmio
 v3: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3.cpp $(LDFLAGS)
 
-v3_cilk: | bin mmio
-	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_cilk.cpp $(LDFLAGS) -lstdc++
+v3_cilk: | bin
+	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/mmio.c src/v3_cilk.cpp -lstdc++
 
 v3_omp: | bin mmio
 	$(CPPC) $(OMPFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v3_omp.cpp $(LDFLAGS) -lstdc++
@@ -43,8 +43,8 @@ v3_omp: | bin mmio
 v4: | bin mmio
 	$(CPPC) $(CFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4.cpp $(LDFLAGS)
 
-v4_cilk: | bin mmio
-	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4_cilk.cpp $(LDFLAGS) -lstdc++
+v4_cilk: | bin
+	$(CILKCC) $(CILKFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/mmio.c src/v4_cilk.cpp -lstdc++
 
 v4_omp: | bin mmio
 	$(CPPC) $(OMPFLAGS) -o $(BINS_DIR)/$@ $(CPP_SOURCES) src/v4_omp.cpp $(LDFLAGS) -lstdc++
