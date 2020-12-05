@@ -8,8 +8,8 @@
 #include "sparse_graph.h"
 
 #ifdef CILK
-#include <cilk/cilk_api.h>
 #include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #endif
 
 #ifdef OMP
@@ -240,8 +240,8 @@ void CSCGraph::triangleCountV3Serial() {
 void CSCGraph::triangleCountV3Cilk(int nthreads) {
 #ifdef CILK
     std::stringstream ss;
-    ss << "CILK_NWORKERS=" << nthreads;
-    __cilkrts_set_param("nworkers", ss.str().c_str())
+    ss << "export CILK_NWORKERS=" << nthreads;
+    std::system(ss.str().c_str());
     int nnz = col_ptr[n];
     cilk_for (int i = 0; i < n; i++) {
         cilk_for (int j = col_ptr[i]; j < col_ptr[i+1]; j++)  {
