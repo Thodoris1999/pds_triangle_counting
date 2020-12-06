@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
             printf("V4 pthreads and V3 c3 differed in %d elements\n", c3_wrong_count);
         } else if (argc > 2 && strcmp(argv[2], "--test") == 0) {
             FILE *fp = fopen("v4_pthreads_bmark.txt", "w+");
-            for (int i = 1; i <= 16; i++) {
+            for (int i = 1; i <= 32; i++) {
                 g.triangleCountV4(1, &duration, "pthreads", i); 
                 double dur_d = duration.tv_sec + duration.tv_nsec/1000000000.0;
                 fprintf(fp, "%lf\n", dur_d);
