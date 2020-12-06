@@ -127,12 +127,10 @@ void CSCGraph::triangleCountV4Omp(int nthreads) {
                 } else {
                     coli_ptr++;
                     colj_ptr++;
-                    #pragma omp atomic
                     c3[i]++;
                 }
             }
         }
-        #pragma omp atomic
         c3[i] /= 2;
     }
     }
