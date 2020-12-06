@@ -23,6 +23,7 @@
 CSCGraph::CSCGraph(int n, int nnz) : n(n) {
     row_index = (int*) malloc(nnz * sizeof(int));
     col_ptr = (int*) malloc((n+1) * sizeof(int));
+    for (int i = 0; i < this->n+1; i++) col_ptr[i]=0;
 
     c3 = (int*) malloc(this->n*sizeof(int));
     for (int i = 0; i < this->n; i++) c3[i]=0;
@@ -30,6 +31,7 @@ CSCGraph::CSCGraph(int n, int nnz) : n(n) {
 
 CSCGraph::CSCGraph(int n) : n(n) {
     col_ptr = (int*) malloc((n+1) * sizeof(int));
+    for (int i = 0; i < this->n+1; i++) col_ptr[i]=0;
 
     c3 = (int*) malloc(this->n*sizeof(int));
     for (int i = 0; i < this->n; i++) c3[i]=0;
@@ -163,15 +165,15 @@ void* pthread_callback(void* params) {
                 } else {
                     coli_ptr++;
                     colj_ptr++;
-                    pthread_mutex_lock(prms->c3_mutex);
+                    //pthread_mutex_lock(prms->c3_mutex);
                     prms->c3[i]++;
-                    pthread_mutex_unlock(prms->c3_mutex);
+                    //pthread_mutex_unlock(prms->c3_mutex);
                 }
             }
         }
-        pthread_mutex_lock(prms->c3_mutex);
+        //pthread_mutex_lock(prms->c3_mutex);
         prms->c3[i] /= 2;
-        pthread_mutex_unlock(prms->c3_mutex);
+        //pthread_mutex_unlock(prms->c3_mutex);
     }
     pthread_exit(0);
 }
@@ -271,12 +273,14 @@ void CSCGraph::triangleCountV3Omp(int nthreads) {
             if (row_index[j] <= i) continue; // only evaluate i < j < k
             for (int k = j+1; k < col_ptr[i+1]; k++) {
                 if (at(row_index[k], row_index[j]) == 1) {
-                    #pragma omp critical
-                    {
+		    #pragma omp atomic
                     c3[i]++;
+
+		    #pragma omp atomic
                     c3[row_index[j]]++;
+
+		    #pragma omp atomic
                     c3[row_index[k]]++;
-                    }
                 }
             }
 	}
@@ -292,12 +296,12 @@ void CSCGraph::triangleCountV3(bool verbose, struct timespec* duration, const ch
 
     if (strcmp(method, "cilk") == 0) {
         if (nthreads == 0)
-            triangleCountV3Cilk(8);
+            triangleCountV3Cilk(20);
         else
             triangleCountV3Cilk(nthreads);
     } else if (strcmp(method, "omp") == 0) {
         if (nthreads == 0)
-            triangleCountV3Omp(8);
+            triangleCountV3Omp(20);
         else
             triangleCountV3Omp(nthreads);
     } else {
@@ -340,17 +344,17 @@ void CSCGraph::triangleCountV4(bool verbose, struct timespec* duration, const ch
 
     if (strcmp(method, "cilk") == 0) {
         if (nthreads == 0)
-            triangleCountV4Cilk(8);
+            triangleCountV4Cilk(20);
         else
             triangleCountV4Cilk(nthreads);
     } else if (strcmp(method, "omp") == 0) {
         if (nthreads == 0)
-            triangleCountV4Omp(8);
+            triangleCountV4Omp(20);
         else
             triangleCountV4Omp(nthreads);
     } else if (strcmp(method, "pthreads") == 0) {
         if (nthreads == 0)
-            triangleCountV4Pthreads(8);
+            triangleCountV4Pthreads(20);
         else
             triangleCountV4Pthreads(nthreads);
     } else {

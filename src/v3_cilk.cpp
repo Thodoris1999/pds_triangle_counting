@@ -8,10 +8,12 @@
 int main(int argc, char** argv) {
     if (argc > 1) {
         CSCGraph g = utils::parseMMGraph(argv[1]);
-        g.print();
+        //g.print();
 
         struct timespec duration;
-        g.triangleCountV3(1, &duration, "cilk");
+        g.triangleCountV3(0, &duration, "cilk");
+        double dur_d = duration.tv_sec + duration.tv_nsec/1000000000.0;
+	printf("%lf\n", dur_d);
 
         if (argc > 2 && strcmp(argv[2], "--debug") == 0) {
             CSCGraph g2 = utils::parseMMGraph(argv[1]);
@@ -32,6 +34,7 @@ int main(int argc, char** argv) {
 
             fclose(fp);
         }
+	return 0;
     }   
 
     DIR* d = opendir("data");
